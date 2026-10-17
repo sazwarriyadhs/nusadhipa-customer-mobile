@@ -4,7 +4,7 @@ import '../models/business_model.dart';
 
 class ApiService {
   // Ubah dari static const ke final (karena dipanggil via instance)
-  final String baseUrl = 'http://localhost:4000/api/v1';
+  final String baseUrl = 'https://api.nusadhipa.shop/api/v1';
 
   // Hapus 'static' di semua fungsi agar bisa dipanggil pakai ApiService()
   
