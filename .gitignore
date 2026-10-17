@@ -1,0 +1,36 @@
+# Flutter
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+# OS
+.DS_Store
+Thumbs.db
+# Backup files
+*.bak
+*.bak_*
+*.bak-*
+# Signing
+*.jks
+*.keystore
+key.properties
+# Env
+.env
+.env.local
+.env.production
+# Ignore (ditambah)
+*.log
+_/backups/
+_backups/
+*.pyc
+__pycache__/
