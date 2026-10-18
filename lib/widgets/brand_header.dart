@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/business.dart';
-import '../services/api_service.dart';
+
 import 'demo_message.dart';
 
 // ============================================================
@@ -118,7 +118,7 @@ class _BrandHeaderState extends State<BrandHeader> {
 
   Future<void> _load() async {
     try {
-      final result = await ApiService().getMyBusiness();
+      final result = null /* TODO: fix getMyBusiness */;
       if (!mounted) return;
       setState(() {
         business = result;
@@ -417,3 +417,4 @@ class _TenantCard extends StatelessWidget {
     );
   }
 }
+

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-import '../../config/api_config.dart';
+
 import '../../widgets/heading.dart';
 
 class CartScreen extends StatefulWidget {
@@ -176,3 +176,4 @@ class CartItem {
   final String imageUrl;
   CartItem({required this.name, required this.businessName, required this.price, required this.quantity, required this.imageUrl});
 }
+
