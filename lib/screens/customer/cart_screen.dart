@@ -1,6 +1,7 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-
 import '../../widgets/heading.dart';
 
 class CartScreen extends StatefulWidget {
@@ -153,7 +154,65 @@ class _CartScreenState extends State<CartScreen> {
           SizedBox(
             width: double.infinity, height: 50,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () async {
+                // Tampilkan loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                );
+
+                try {
+                  final response = await http.post(
+                    Uri.parse('https://api.nusadhipa.shop/api/v1/orders'),
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                    },
+                    body: jsonEncode({
+                      "business_id": "532562f7-665f-4fe8-b871-f85b9c2e7844", 
+                      "items": [
+                        {"product_id": "ID_PRODUK_1", "quantity": 1}
+                      ],
+                      "notes": "Checkout dari mobile"
+                    }),
+                  );
+
+                  if (mounted) Navigator.pop(context);
+
+                  final data = jsonDecode(response.body);
+                  if (response.statusCode == 200 || response.statusCode == 201) {
+                    if (mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Checkout Sukses'),
+                          content: Text('Pesanan ID: ${data['data']?['public_id'] ?? 'Berhasil'}'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
+                          ],
+                        ),
+                      );
+                    }
+                  } else {
+                    throw Exception(data['message'] ?? 'Gagal checkout');
+                  }
+                } catch (e) {
+                  if (mounted) Navigator.pop(context);
+                  if (mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Checkout Gagal'),
+                        content: Text(e.toString()),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
+                        ],
+                      ),
+                    );
+                  }
+                }
+              },
               style: ElevatedButton.styleFrom(backgroundColor: brandRed, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: const Text('Checkout', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             ),
@@ -176,4 +235,3 @@ class CartItem {
   final String imageUrl;
   CartItem({required this.name, required this.businessName, required this.price, required this.quantity, required this.imageUrl});
 }
-

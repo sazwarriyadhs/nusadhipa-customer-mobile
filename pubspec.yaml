@@ -37,9 +37,10 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
-
   assets:
+    - assets/images/
     - assets/branding/header_marketplace.jpg
     - assets/branding/logo_nusadhipa.png
     - assets/branding/sauri_logo.png
     - assets/branding/Fresh Poultry Processing Showcase.png
+

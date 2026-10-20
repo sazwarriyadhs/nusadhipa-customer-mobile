@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../config/theme.dart';
+import '../../services/osrm_service.dart';
 
 class TrackingScreen extends StatefulWidget {
   final String orderId;
@@ -14,10 +15,27 @@ class TrackingScreen extends StatefulWidget {
 class _TrackingScreenState extends State<TrackingScreen> {
   final MapController mapController = MapController();
 
-  // Sample lokasi
-  final LatLng storeLocation = const LatLng(-6.6041669, 106.8088693);
-  final LatLng customerLocation = const LatLng(-6.5980000, 106.8050000);
-  final LatLng courierLocation = const LatLng(-6.6005000, 106.8070000);
+  // Sample lokasi (dibuat berdekatan biar 3 marker keliatan)
+  final LatLng storeLocation = const LatLng(-6.5985, 106.8075);
+  final LatLng customerLocation = const LatLng(-6.5980, 106.8050);
+  final LatLng courierLocation = const LatLng(-6.5983, 106.8062);
+
+  List<LatLng> routePoints = [];
+  bool loadingRoute = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoute();
+  }
+
+  Future<void> _loadRoute() async {
+    final points = await OsrmService.getRoute(storeLocation, customerLocation);
+    setState(() {
+      routePoints = points;
+      loadingRoute = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +48,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
       ),
       body: Stack(
         children: [
-          // MAP
           FlutterMap(
             mapController: mapController,
             options: MapOptions(
@@ -48,26 +65,33 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 userAgentPackageName: 'com.nusadhipa.customer',
                 maxZoom: 19,
               ),
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: [storeLocation, courierLocation, customerLocation],
-                    strokeWidth: 4,
-                    color: brandRed,
-                    borderStrokeWidth: 1,
-                    borderColor: Colors.white,
-                  ),
-                ],
-              ),
+              // Rute Hijau
+              if (!loadingRoute && routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      strokeWidth: 5,
+                      color: Colors.green,
+                      borderStrokeWidth: 2,
+                      borderColor: Colors.white,
+                    ),
+                  ],
+                ),
+              // Marker
               MarkerLayer(
                 markers: [
-                  _buildMarker(storeLocation, Icons.store, 'Toko', brandRed),
-                  _buildMarker(courierLocation, Icons.delivery_dining, 'Kurir', const Color(0xFFF59E0B)),
-                  _buildMarker(customerLocation, Icons.home, 'Rumah', Colors.black87),
+                  _buildStoreMarker(storeLocation),
+                  _buildCourierMarker(courierLocation),
+                  _buildHomeMarker(customerLocation),
                 ],
               ),
             ],
           ),
+
+          if (loadingRoute)
+            const Center(child: CircularProgressIndicator()),
+
           // BOTTOM CARD
           Positioned(
             bottom: 0,
@@ -193,33 +217,60 @@ class _TrackingScreenState extends State<TrackingScreen> {
     );
   }
 
-  Marker _buildMarker(LatLng point, IconData icon, String label, Color color) {
+  // Marker Toko (merah)
+  Marker _buildStoreMarker(LatLng point) {
+    return Marker(
+      point: point,
+      width: 50,
+      height: 50,
+      child: Container(
+        decoration: BoxDecoration(
+          color: brandRed,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [BoxShadow(color: brandRed.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))],
+        ),
+        child: const Icon(Icons.store, color: Colors.white, size: 24),
+      ),
+    );
+  }
+
+  // Marker Kurir (logo motor NUSA-DHIPA)
+  Marker _buildCourierMarker(LatLng point) {
     return Marker(
       point: point,
       width: 60,
       height: 60,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-          const SizedBox(height: 2),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-            child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color)),
-          ),
-        ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: brandRed, width: 3),
+          boxShadow: [BoxShadow(color: brandRed.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        padding: const EdgeInsets.all(6),
+        child: Image.asset(
+          'assets/images/courier-marker.png',
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+
+  // Marker Rumah (hitam)
+  Marker _buildHomeMarker(LatLng point) {
+    return Marker(
+      point: point,
+      width: 50,
+      height: 50,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))],
+        ),
+        child: const Icon(Icons.home, color: Colors.white, size: 24),
       ),
     );
   }
