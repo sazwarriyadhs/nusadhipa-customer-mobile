@@ -8,7 +8,7 @@ class ApiConfig {
   /// ============================================================
   static const bool kUseProductionApi = bool.fromEnvironment(
     'USE_PROD',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   /// Base URL PRODUCTION (Railway + Custom Domain)

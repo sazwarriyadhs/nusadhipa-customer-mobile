@@ -71,6 +71,7 @@ class AuthService {
     await prefs.setString(_tokenKey, token);
     if (user != null) {
       await prefs.setString(_userKey, jsonEncode(user));
+      print('USER LOGIN: $user');
     }
 
     _cachedToken = token;

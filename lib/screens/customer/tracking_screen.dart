@@ -41,7 +41,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lacak ${widget.orderId}'),
+        title: Text('Lacak Pesanan'),
         backgroundColor: brandRed,
         foregroundColor: Colors.white,
         elevation: 0,

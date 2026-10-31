@@ -1,140 +1,116 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../config/theme.dart';
-import '../../widgets/heading.dart';
+import '../../models/order.dart';
+import '../../services/api_service.dart';
 import 'tracking_screen.dart';
 
-class OrdersScreen extends StatelessWidget {
+class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
-  final List<Order> orders = const [
-    Order(
-      id: 'ORD-2026-10-001', date: '17 Okt 2026', status: 'Dikirim',
-      statusColor: Color(0xFFE5232E), items: 2, total: 1350000,
-      businessName: 'Fajar Florist', productName: 'Bunga Papan Custom',
-      imageUrl: 'https://api.nusadhipa.shop/uploads/products/fajar-florist/20-papan-custom.jpg',
-    ),
-    Order(
-      id: 'ORD-2026-10-002', date: '16 Okt 2026', status: 'Selesai',
-      statusColor: Color(0xFF1A1A1A), items: 3, total: 144000,
-      businessName: 'PT SAURI', productName: 'Boneless Dada + Test Ikan',
-      imageUrl: 'https://api.nusadhipa.shop/sauri/SAURI_29_Foto_Produk_Cropped/01_boneless-dada.jpg',
-    ),
-    Order(
-      id: 'ORD-2026-10-003', date: '15 Okt 2026', status: 'Menunggu Pembayaran',
-      statusColor: Color(0xFFC41E28), items: 1, total: 500000,
-      businessName: 'PT DIGI MEDIA KOMUNIKA', productName: 'AI Transformation Consulting',
-      imageUrl: 'https://api.nusadhipa.shop/uploads/services/01_konsultasi_transformasi_ai.png',
-    ),
-  ];
+  @override
+  State<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends State<OrdersScreen> {
+  List<Order> _orders = [];
+  bool _loading = true;
+  String _filter = 'Semua';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() => _loading = true);
+    try {
+      final orders = await ApiService().getOrders();
+      if (mounted) {
+        setState(() {
+          _orders = orders;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<Order> get _filteredOrders {
+    if (_filter == 'Semua') return _orders;
+    if (_filter == 'Aktif') {
+      return _orders.where((o) => o.status == 'processing' || o.status == 'shipped' || o.status == 'pending').toList();
+    }
+    return _orders.where((o) => o.status == 'completed' || o.status == 'delivered').toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const Heading('Pesanan', 'Riwayat belanja Anda'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: ['Semua', 'Aktif', 'Selesai'].asMap().entries.map((e) {
-                final isActive = e.key == 0;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isActive ? brandRed : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isActive ? brandRed : line),
-                    ),
-                    child: Text(e.value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? Colors.white : ink)),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...orders.map((order) => _buildOrderCard(context, order)),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderCard(BuildContext context, Order order) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: line)),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // HEADER
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  const Icon(Icons.receipt_long, color: brandRed, size: 16),
-                  const SizedBox(width: 6),
-                  Text(order.id, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: order.statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(order.status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: order.statusColor)),
-                  ),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Pesanan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                  SizedBox(height: 4),
+                  Text('Riwayat belanja Anda', style: TextStyle(fontSize: 14, color: Colors.white70)),
                 ],
               ),
             ),
-            const Divider(height: 1, color: line),
+
+            // FILTER
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      width: 64, height: 64, color: Colors.grey.shade100,
-                      child: Image.network(order.imageUrl, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.image_outlined, color: brandRed)),
+                children: ['Semua', 'Aktif', 'Selesai'].map((f) {
+                  final isSelected = _filter == f;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: ChoiceChip(
+                      label: Text(f),
+                      selected: isSelected,
+                      onSelected: (_) => setState(() => _filter = f),
+                      backgroundColor: const Color(0xFF1E293B),
+                      selectedColor: brandRed,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                      side: BorderSide(color: isSelected ? brandRed : Colors.white24),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(order.productName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Row(children: [
-                          const Icon(Icons.verified, color: brandRed, size: 10),
-                          const SizedBox(width: 2),
-                          Text(order.businessName, style: const TextStyle(fontSize: 9, color: muted)),
-                        ]),
-                        const SizedBox(height: 4),
-                        Row(children: [
-                          Text('${order.items} item', style: const TextStyle(fontSize: 10, color: muted)),
-                          const Spacer(),
-                          Text('Rp ${_formatRupiah(order.total)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: brandRed)),
-                        ]),
-                      ],
-                    ),
-                  ),
-                ],
+                  );
+                }).toList(),
               ),
             ),
-            const Divider(height: 1, color: line),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Text(order.date, style: const TextStyle(fontSize: 10, color: muted)),
-                  const Spacer(),
-                  OutlinedButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingScreen(orderId: order.id))),
-                    style: OutlinedButton.styleFrom(foregroundColor: brandRed, side: const BorderSide(color: brandRed), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: const Text('Lacak', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
+
+            // LIST PESANAN
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: brandRed))
+                  : _filteredOrders.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          color: brandRed,
+                          onRefresh: _loadOrders,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: _filteredOrders.length,
+                            itemBuilder: (context, index) {
+                              final order = _filteredOrders[index];
+                              return _buildOrderCard(order);
+                            },
+                          ),
+                        ),
             ),
           ],
         ),
@@ -142,20 +118,110 @@ class OrdersScreen extends StatelessWidget {
     );
   }
 
-  String _formatRupiah(int value) {
-    return value.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: brandRed.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.receipt_long_outlined, size: 64, color: brandRed),
+          ),
+          const SizedBox(height: 24),
+          const Text('Belum Ada Pesanan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
+          const SizedBox(height: 8),
+          const Text('Yuk mulai belanja dari UMKM lokal!', style: TextStyle(fontSize: 13, color: Colors.white70)),
+        ],
+      ),
+    );
   }
-}
 
-class Order {
-  final String id;
-  final String date;
-  final String status;
-  final Color statusColor;
-  final int items;
-  final int total;
-  final String businessName;
-  final String productName;
-  final String imageUrl;
-  const Order({required this.id, required this.date, required this.status, required this.statusColor, required this.items, required this.total, required this.businessName, required this.productName, required this.imageUrl});
+  Widget _buildOrderCard(Order order) {
+    final statusColor = _getStatusColor(order.status);
+    final statusText = order.statusLabel;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.greenAccent.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(order.orderNumber, style: const TextStyle(fontSize: 11, color: Colors.white54, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
+                child: Text(statusText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white12),
+          Row(
+            children: [
+              const Icon(Icons.store, color: brandRed, size: 16),
+              const SizedBox(width: 6),
+              Expanded(child: Text(order.buyerName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white))),
+              Text('Rp ${NumberFormat('#,##0', 'id_ID').format(order.grandTotal)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.greenAccent)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            order.placedAt != null
+                ? DateFormat('dd MMM yyyy', 'id_ID').format(order.placedAt!)
+                : '-',
+            style: const TextStyle(fontSize: 11, color: Colors.white54),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 36,
+            child: OutlinedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TrackingScreen(orderId: order.publicId ?? '')),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: brandRed,
+                side: const BorderSide(color: brandRed),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Lacak', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'pending': return Colors.orange;
+      case 'processing': return Colors.blue;
+      case 'shipped': return Colors.purple;
+      case 'delivered': return Colors.green;
+      case 'completed': return Colors.green;
+      case 'cancelled': return Colors.red;
+      default: return Colors.grey;
+    }
+  }
+
+  String _getStatusText(String? status) {
+    switch (status) {
+      case 'pending': return 'Menunggu Pembayaran';
+      case 'processing': return 'Diproses';
+      case 'shipped': return 'Dikirim';
+      case 'delivered': return 'Selesai';
+      case 'completed': return 'Selesai';
+      case 'cancelled': return 'Dibatalkan';
+      default: return status ?? '-';
+    }
+  }
 }
