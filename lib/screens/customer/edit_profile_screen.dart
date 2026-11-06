@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -13,6 +14,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   bool _loading = true;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -28,6 +30,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _emailCtrl.text = user?['email'] ?? '';
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (_nameCtrl.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    
+    try {
+      // Asumsi endpoint update profil ada di ApiService
+      // Kalau belum ada, buat fungsi ini di api_service.dart
+      await ApiService().updateProfile(name: _nameCtrl.text.trim());
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil berhasil diperbarui!'), backgroundColor: Colors.green),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal update profil: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -75,16 +101,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Fitur simpan profil segera hadir!')),
-                        );
-                      },
+                      onPressed: _saving ? null : _saveProfile,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: brandRed,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: _saving 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
                 ],

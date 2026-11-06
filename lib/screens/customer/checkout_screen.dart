@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../services/api_service.dart';
 
@@ -87,9 +86,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _loading = true);
 
     try {
-      final storeLat = (widget.cartItems.first['business_lat'] as num?)?.toDouble() ?? -6.2;
-      final storeLng = (widget.cartItems.first['business_lng'] as num?)?.toDouble() ?? 106.816;
-      final storeLatLng = LatLng(storeLat, storeLng);
+      final rawLat = widget.cartItems.first['business_lat'] as num?;
+      final rawLng = widget.cartItems.first['business_lng'] as num?;
+      if (rawLat == null || rawLng == null) {
+        throw Exception('Lokasi toko tidak ditemukan. Hubungi admin.');
+      }
+      final storeLatLng = LatLng(rawLat.toDouble(), rawLng.toDouble());
       final distanceKm = _calculateDistanceKm(storeLatLng, _selectedLatLng!);
 
       final body = {

@@ -15,7 +15,8 @@ class TrackingScreen extends StatefulWidget {
 class _TrackingScreenState extends State<TrackingScreen> {
   final MapController mapController = MapController();
 
-  // Sample lokasi (dibuat berdekatan biar 3 marker keliatan)
+  // TODO: Ganti ini dengan data dari API Tracking
+  // Misal: ApiService().getOrderTracking(widget.orderId)
   final LatLng storeLocation = const LatLng(-6.5985, 106.8075);
   final LatLng customerLocation = const LatLng(-6.5980, 106.8050);
   final LatLng courierLocation = const LatLng(-6.5983, 106.8062);
@@ -31,17 +32,19 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   Future<void> _loadRoute() async {
     final points = await OsrmService.getRoute(storeLocation, customerLocation);
-    setState(() {
-      routePoints = points;
-      loadingRoute = false;
-    });
+    if(mounted) {
+      setState(() {
+        routePoints = points;
+        loadingRoute = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lacak Pesanan'),
+        title: Text('Lacak Pesanan #${widget.orderId}'), // Tampilkan ID dinamis
         backgroundColor: brandRed,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -65,7 +68,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 userAgentPackageName: 'com.nusadhipa.customer',
                 maxZoom: 19,
               ),
-              // Rute Hijau
               if (!loadingRoute && routePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
@@ -78,7 +80,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     ),
                   ],
                 ),
-              // Marker
               MarkerLayer(
                 markers: [
                   _buildStoreMarker(storeLocation),
@@ -92,7 +93,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
           if (loadingRoute)
             const Center(child: CircularProgressIndicator()),
 
-          // BOTTOM CARD
           Positioned(
             bottom: 0,
             left: 0,
@@ -137,9 +137,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Budi Santoso', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                            // TODO: Ganti "Budi Santoso" dengan nama kurir dari API
+                            Text('Kurir NUSA-DHIPA', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
                             SizedBox(height: 2),
-                            Text('Kurir NUSA-DHIPA · Honda Vario', style: TextStyle(fontSize: 11, color: muted)),
+                            Text('Sedang Menuju Lokasi', style: TextStyle(fontSize: 11, color: muted)),
                           ],
                         ),
                       ),
@@ -174,25 +175,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: brandRed.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: brandRed.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.access_time, color: brandRed, size: 20),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text('Estimasi tiba dalam', style: TextStyle(fontSize: 12, color: muted)),
-                        ),
-                        const Text('15 menit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: brandRed)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 48,
@@ -217,7 +199,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
     );
   }
 
-  // Marker Toko (merah)
   Marker _buildStoreMarker(LatLng point) {
     return Marker(
       point: point,
@@ -235,7 +216,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
     );
   }
 
-  // Marker Kurir (logo motor NUSA-DHIPA)
   Marker _buildCourierMarker(LatLng point) {
     return Marker(
       point: point,
@@ -249,15 +229,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
           boxShadow: [BoxShadow(color: brandRed.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         padding: const EdgeInsets.all(6),
-        child: Image.asset(
-          'assets/images/courier-marker.png',
-          fit: BoxFit.contain,
-        ),
+        child: const Icon(Icons.delivery_dining, color: brandRed, size: 30),
       ),
     );
   }
 
-  // Marker Rumah (hitam)
   Marker _buildHomeMarker(LatLng point) {
     return Marker(
       point: point,

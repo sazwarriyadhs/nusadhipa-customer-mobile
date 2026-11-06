@@ -1,16 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import '../config/api_config.dart';
 import 'auth_service.dart';
 import '../models/product.dart';
 import '../models/business.dart';
 import '../models/order.dart';
-import '../models/order_detail.dart';
-import '../models/financial_report.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -35,18 +30,11 @@ class ApiService {
     return headers;
   }
 
-  Future<Map<String, dynamic>> _get(
-    String path, {
-    Map<String, String>? query,
-  }) async {
-    final uri = Uri.parse(
-      '${ApiConfig.kApiBaseUrl}$path',
-    ).replace(queryParameters: query);
+  Future<Map<String, dynamic>> _get(String path, {Map<String, String>? query}) async {
+    final uri = Uri.parse('${ApiConfig.kApiBaseUrl}$path').replace(queryParameters: query);
     try {
       final headers = await _getHeaders(isJson: false);
-      final response = await http
-          .get(uri, headers: headers)
-          .timeout(const Duration(milliseconds: ApiConfig.kTimeoutMs));
+      final response = await http.get(uri, headers: headers).timeout(const Duration(milliseconds: ApiConfig.kTimeoutMs));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         String errorMsg = 'API mengembalikan HTTP ${response.statusCode}';
@@ -86,6 +74,7 @@ class ApiService {
         headers: {...await _getHeaders(), 'Content-Type': 'application/json'},
         body: body != null ? jsonEncode(body) : null,
       ).timeout(Duration(milliseconds: ApiConfig.kTimeoutMs));
+      
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ApiException('HTTP ${response.statusCode}', statusCode: response.statusCode);
       }
@@ -99,9 +88,7 @@ class ApiService {
   Future<Map<String, dynamic>> _delete(String path) async {
     final uri = Uri.parse('${ApiConfig.kApiBaseUrl}$path');
     try {
-      final response = await http
-          .delete(uri, headers: await _getHeaders())
-          .timeout(Duration(milliseconds: ApiConfig.kTimeoutMs));
+      final response = await http.delete(uri, headers: await _getHeaders()).timeout(Duration(milliseconds: ApiConfig.kTimeoutMs));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ApiException('HTTP ${response.statusCode}', statusCode: response.statusCode);
       }
@@ -112,22 +99,35 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> _put(String path, {Map<String, dynamic>? body}) async {
+  Future<Map<String, dynamic>> _patch(String path, {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('${ApiConfig.kApiBaseUrl}$path');
     try {
-      final response = await http.put(
+      final response = await http.patch(
         uri,
         headers: {...await _getHeaders(), 'Content-Type': 'application/json'},
         body: body != null ? jsonEncode(body) : null,
       ).timeout(Duration(milliseconds: ApiConfig.kTimeoutMs));
+
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw ApiException('HTTP ${response.statusCode}', statusCode: response.statusCode);
+        String message = 'HTTP ${response.statusCode}';
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['message'] != null) {
+            message = decoded['message'].toString();
+          }
+        } catch (_) {}
+        throw ApiException(message, statusCode: response.statusCode);
       }
       return jsonDecode(response.body) as Map<String, dynamic>;
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Gagal mengupdate data: ${e.toString()}');
     }
+  }
+
+  // TAMBAHAN: Fungsi Update Profil untuk EditProfileScreen
+  Future<Map<String, dynamic>> updateProfile({required String name}) async {
+    return await _patch('/customer/profile', body: {'name': name});
   }
 
   // ============================================================
@@ -141,36 +141,16 @@ class ApiService {
     int page = 1,
     int limit = 100,
   }) async {
-    final params = <String, String>{
-      'page': page.toString(),
-      'limit': limit.toString(),
-    };
+    final params = <String, String>{'page': page.toString(), 'limit': limit.toString()};
     if (query != null && query.trim().isNotEmpty) params['q'] = query.trim();
-    if (category != null && category.trim().isNotEmpty) {
-      params['category'] = category.trim();
-    }
-    if (business != null && business.trim().isNotEmpty) {
-      params['business'] = business.trim();
-    }
-    if (status != null && status.trim().isNotEmpty) {
-      params['status'] = status.trim();
-    }
+    if (category != null && category.trim().isNotEmpty) params['category'] = category.trim();
+    if (business != null && business.trim().isNotEmpty) params['business'] = business.trim();
+    if (status != null && status.trim().isNotEmpty) params['status'] = status.trim();
 
     final json = await _get('/products', query: params);
     final data = json['data'];
     if (data is! List) return [];
     return data.whereType<Map<String, dynamic>>().map(Product.fromJson).toList();
-  }
-
-    Future<Map<String, dynamic>> getProductsRaw({
-    int page = 1,
-    int limit = 100,
-  }) async {
-    final params = <String, String>{
-      'page': page.toString(),
-      'limit': limit.toString(),
-    };
-    return await _get('/products', query: params);
   }
 
   Future<dynamic> getProduct(String slug) async {
@@ -219,16 +199,31 @@ class ApiService {
   // ============================================================
   Future<List<dynamic>> getCart() async {
     final json = await _get('/cart');
-    return (json['data'] as List<dynamic>?) ?? [];
+    final data = json['data'];
+    if (data is List) return data;
+    if (data is Map) {
+      final items = data['items'];
+      if (items is List) return items;
+    }
+    return <dynamic>[];
   }
 
   Future<void> addToCart(dynamic variantId, int quantity, {String sellingMode = 'package'}) async {
-    await _post('/cart/items', body: {'variant_id': variantId, 'quantity': quantity, 'selling_mode': sellingMode});
+    await _post('/cart/items', body: {
+      'variant_id': variantId,
+      'quantity': quantity,
+      'selling_mode': sellingMode,
+    });
+  }
+
+  Future<void> updateCartItem(dynamic cartItemId, int quantity) async {
+    await _patch('/cart/items/$cartItemId', body: {'quantity': quantity});
   }
 
   Future<void> removeFromCart(dynamic cartItemId) async {
-    await _delete('/cart/$cartItemId');
+    await _delete('/cart/items/$cartItemId');
   }
+
   Future<Map<String, dynamic>> getWallet() async {
     try {
       final json = await _get('/customer/wallet');
@@ -240,10 +235,8 @@ class ApiService {
     }
   }
 
-
-
   // ============================================================
-  // CHECKOUT & ORDERS
+  // CHECKOUT
   // ============================================================
   Future<Map<String, dynamic>> createOrder(Map<String, dynamic> body) async {
     return await _post('/orders', body: body);

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
@@ -8,80 +9,67 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._();
 
-  static const String _tokenKey = 'auth_token';
-  static const String _userKey = 'auth_user';
-
-  String? _cachedToken;
-
-  Future<String?> getToken() async {
-    if (_cachedToken != null) return _cachedToken;
-    final prefs = await SharedPreferences.getInstance();
-    _cachedToken = prefs.getString(_tokenKey);
-    return _cachedToken;
-  }
-
-  Future<Map<String, dynamic>?> getUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_userKey);
-    if (raw == null) return null;
-    try {
-      return jsonDecode(raw) as Map<String, dynamic>;
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
 
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    final uri = Uri.parse('${ApiConfig.kApiBaseUrl}${ApiConfig.kAuthLogin}');
+  Future<void> login(String email, String password) async {
+    final uri = Uri.parse('${ApiConfig.kApiBaseUrl}/auth/login');
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      ).timeout(Duration(milliseconds: ApiConfig.kTimeoutMs));
 
-    final response = await http
-        .post(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: jsonEncode({
-            'email': email.trim(),
-            'password': password,
-          }),
-        )
-        .timeout(const Duration(milliseconds: ApiConfig.kTimeoutMs));
+      final data = jsonDecode(response.body);
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-
-    if (response.statusCode != 200 || body['success'] != true) {
-      final msg = body['message'] ?? body['error'] ?? 'Login gagal';
-      throw Exception(msg);
+      if (response.statusCode == 200) {
+        final token = data['token'] ?? data['access_token'] ?? data['data']?['token'];
+        final user = data['user'] ?? data['data']?['user'];
+        
+        if (token != null) {
+          await saveToken(token.toString());
+          if (user != null) await saveUser(user as Map<String, dynamic>);
+          return;
+        }
+        throw Exception('Token tidak ditemukan di response');
+      } else {
+        throw Exception(data['message'] ?? 'Login gagal (HTTP ${response.statusCode})');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Gagal terhubung ke server: ${e.toString()}');
     }
+  }
 
-    final token = body['token'] as String?;
-    final user = body['user'] as Map<String, dynamic>?;
-
-    if (token == null || token.isEmpty) {
-      throw Exception('Token tidak valid dari server');
-    }
-
+  Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-    if (user != null) {
-      await prefs.setString(_userKey, jsonEncode(user));
-      print('USER LOGIN: $user');
-    }
+    await prefs.setString('token', token);
+  }
 
-    _cachedToken = token;
-    return body;
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
+  Future<void> saveUser(Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user', jsonEncode(user));
+    debugPrint('USER LOGIN: $user');
+  }
+
+  Future<Map<String, dynamic>?> getUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final str = prefs.getString('user');
+    if (str == null) return null;
+    return jsonDecode(str) as Map<String, dynamic>;
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userKey);
-    _cachedToken = null;
+    await prefs.remove('token');
+    await prefs.remove('user');
   }
 }

@@ -54,7 +54,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HEADER
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
               child: Column(
@@ -66,8 +65,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ],
               ),
             ),
-
-            // FILTER
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
@@ -92,8 +89,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 }).toList(),
               ),
             ),
-
-            // LIST PESANAN
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator(color: brandRed))
@@ -147,7 +142,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.greenAccent.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,7 +153,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Text(order.orderNumber, style: const TextStyle(fontSize: 11, color: Colors.white54, fontWeight: FontWeight.bold)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
                 child: Text(statusText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
               ),
             ],
@@ -210,18 +205,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
       case 'completed': return Colors.green;
       case 'cancelled': return Colors.red;
       default: return Colors.grey;
-    }
-  }
-
-  String _getStatusText(String? status) {
-    switch (status) {
-      case 'pending': return 'Menunggu Pembayaran';
-      case 'processing': return 'Diproses';
-      case 'shipped': return 'Dikirim';
-      case 'delivered': return 'Selesai';
-      case 'completed': return 'Selesai';
-      case 'cancelled': return 'Dibatalkan';
-      default: return status ?? '-';
     }
   }
 }

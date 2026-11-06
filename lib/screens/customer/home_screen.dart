@@ -3,9 +3,9 @@ import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../models/product.dart';
 import '../../services/api_service.dart';
-import '../../services/nav_service.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
+import 'all_products_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic> _wallet = {'balance': 0, 'points': 0};
   bool _loading = true;
   String _selectedCategory = '';
-String _searchQuery = '';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -89,9 +89,9 @@ String _searchQuery = '';
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F172A),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.greenAccent.withOpacity(0.3), width: 1),
+                    border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.3), width: 1),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5)),
                     ],
                   ),
                   child: Row(
@@ -100,7 +100,7 @@ String _searchQuery = '';
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Saldo Nusadhipa', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            const Text('Saldo Nusadhipa', style: TextStyle(color: Colors.white70, fontSize: 12)),
                             const SizedBox(height: 4),
                             Text(
                               'Rp ${NumberFormat('#,##0', 'id_ID').format(_wallet['balance'] ?? 0)}',
@@ -115,7 +115,7 @@ String _searchQuery = '';
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Poin Reward', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            const Text('Poin Reward', style: TextStyle(color: Colors.white70, fontSize: 12)),
                             const SizedBox(height: 4),
                             Text(
                               '${_wallet['points'] ?? 0} poin',
@@ -138,7 +138,9 @@ String _searchQuery = '';
                   children: [
                     const Text('Kategori Pilihan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const AllProductsScreen()));
+                      },
                       child: const Text('Lihat Semua', style: TextStyle(color: brandRed, fontSize: 12)),
                     ),
                   ],
@@ -212,7 +214,7 @@ String _searchQuery = '';
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Produk Marketplace', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                    Text('\ produk', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('${_filteredProducts.length} produk', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
@@ -242,7 +244,7 @@ String _searchQuery = '';
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
+                                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
                               ],
                             ),
                             child: Column(
@@ -336,10 +338,10 @@ String _searchQuery = '';
                 controller: _searchCtrl,
                 decoration: InputDecoration(
                   hintText: 'Cari produk atau nama UMKM...',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                   prefixIcon: const Icon(Icons.search, color: Colors.white),
                   filled: true,
-                  fillColor: Colors.black.withOpacity(0.5), // Gelap kontras
+                  fillColor: Colors.black.withValues(alpha: 0.5), // Gelap kontras
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,

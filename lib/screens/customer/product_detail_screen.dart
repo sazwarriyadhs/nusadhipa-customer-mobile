@@ -12,8 +12,10 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _loading = true;
+  bool _addingToCart = false;
   String? _error;
   Map<String, dynamic>? _product;
+  String _sellingMode = 'retail';
 
   @override
   void initState() {
@@ -22,37 +24,185 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final product = await ApiService().getProduct(widget.slug);
       if (!mounted) return;
+
       if (product is Map<String, dynamic>) {
-        setState(() { _product = product; _loading = false; });
+        setState(() {
+          _product = product;
+          _loading = false;
+          _sellingMode = 'retail';
+        });
       } else {
-        setState(() { _error = 'Format data tidak valid'; _loading = false; });
+        setState(() {
+          _error = 'Format data tidak valid';
+          _loading = false;
+        });
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
+  Map<String, dynamic>? _getVariant() {
+    final variants = _product?['variants'];
+    if (variants is! List || variants.isEmpty || variants.first is! Map) {
+      return null;
+    }
+    return Map<String, dynamic>.from(variants.first as Map);
+  }
+
+  dynamic _getVariantId() => _getVariant()?['id'];
+
   String _getImageUrl() {
-    final images = _product?['images'] as List<dynamic>?;
-    if (images == null || images.isEmpty) return '';
-    return images[0]['image_url']?.toString() ?? '';
+    final images = _product?['images'];
+    if (images is! List || images.isEmpty || images.first is! Map) {
+      return '';
+    }
+    return images.first['image_url']?.toString() ?? '';
   }
 
-  String _getPrice() {
-    final variants = _product?['variants'] as List<dynamic>?;
-    if (variants == null || variants.isEmpty) return '0';
-    return variants[0]['price']?.toString() ?? '0';
+  String _salesMode() {
+    return (_getVariant()?['sales_mode'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
   }
 
-  dynamic _getVariantId() {
-    final variants = _product?['variants'] as List<dynamic>?;
-    if (variants == null || variants.isEmpty) return null;
-    return variants[0]['id'];
+  double? _validPrice(dynamic value) {
+    if (value == null) return null;
+    final parsed = double.tryParse(value.toString());
+    if (parsed == null || !parsed.isFinite || parsed <= 0) return null;
+    return parsed;
+  }
+
+  double? _getSelectedPrice() {
+    final variant = _getVariant();
+    if (variant == null) return null;
+
+    if (_salesMode() == 'package') {
+      return _validPrice(variant['retail_price']) ??
+          _validPrice(variant['price']);
+    }
+
+    if (_salesMode() == 'weight') {
+      if (_sellingMode == 'b2b') {
+        return _validPrice(variant['b2b_price']);
+      }
+      return _validPrice(variant['retail_price']) ??
+          _validPrice(variant['price']);
+    }
+
+    return null;
+  }
+
+  int _initialQuantity() {
+    if (_salesMode() == 'weight' && _sellingMode == 'b2b') {
+      return 100;
+    }
+    return 1;
+  }
+
+  String _unitLabel() {
+    if (_salesMode() == 'weight') return 'kg';
+    if (_salesMode() == 'package') return 'unit';
+    return '';
+  }
+
+  String _formatPrice(double value) {
+    final rounded = value.round();
+    final digits = rounded.toString();
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+      buffer.write(digits[i]);
+    }
+
+    return buffer.toString();
+  }
+
+  bool _canAddToCart() {
+    final variant = _getVariant();
+    if (variant == null || _getVariantId() == null) return false;
+
+    final mode = _salesMode();
+    if (mode != 'package' && mode != 'weight') return false;
+
+    if (mode == 'weight' &&
+        _sellingMode != 'retail' &&
+        _sellingMode != 'b2b') {
+      return false;
+    }
+
+    final price = _getSelectedPrice();
+    if (price == null) return false;
+
+    final stock = num.tryParse(
+      (variant['available_stock'] ?? '').toString(),
+    );
+    if (stock != null && stock < _initialQuantity()) return false;
+
+    return true;
+  }
+
+  Future<void> _addToCart() async {
+    if (_addingToCart) return;
+
+    if (!_canAddToCart()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harga, stok, atau konfigurasi produk tidak tersedia'),
+        ),
+      );
+      return;
+    }
+
+    final variantId = _getVariantId();
+    final quantity = _initialQuantity();
+    final mode = _salesMode() == 'package' ? 'package' : _sellingMode;
+    final unit = _unitLabel();
+    final productName = _product?['name']?.toString() ?? 'Produk';
+
+    setState(() => _addingToCart = true);
+
+    try {
+      await ApiService().addToCart(
+        variantId,
+        quantity,
+        sellingMode: mode,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$productName ($quantity $unit) ditambahkan ke keranjang',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menambahkan ke keranjang: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _addingToCart = false);
+      }
+    }
   }
 
   @override
@@ -62,6 +212,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         body: Center(child: CircularProgressIndicator(color: brandRed)),
       );
     }
+
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Detail Produk')),
@@ -71,7 +222,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final p = _product!;
     final imageUrl = _getImageUrl();
-    final price = _getPrice();
+    final salesMode = _salesMode();
+    final selectedPrice = _getSelectedPrice();
+    final isWeight = salesMode == 'weight';
+    final isPackage = salesMode == 'package';
+    final canAdd = _canAddToCart();
 
     return Scaffold(
       backgroundColor: canvas,
@@ -91,7 +246,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               errorBuilder: (_, __, ___) => Container(
                 height: 250,
                 color: Colors.grey.shade200,
-                child: const Icon(Icons.image, size: 64, color: Colors.grey),
+                child: const Icon(
+                  Icons.image,
+                  size: 64,
+                  color: Colors.grey,
+                ),
               ),
             ),
             Padding(
@@ -101,12 +260,77 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   Text(
                     p['name']?.toString() ?? '',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
+
+                  if (isWeight) ...[
+                    const Text(
+                      'Pilih jenis pembelian',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Retail · 1 kg'),
+                            selected: _sellingMode == 'retail',
+                            selectedColor: brandRed.withValues(alpha: 0.14),
+                            onSelected: _addingToCart
+                                ? null
+                                : (_) {
+                                    setState(() => _sellingMode = 'retail');
+                                  },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_validPrice(_getVariant()?['b2b_price']) != null)
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('B2B · 100 kg'),
+                              selected: _sellingMode == 'b2b',
+                              selectedColor: brandRed.withValues(alpha: 0.14),
+                              onSelected: _addingToCart
+                                  ? null
+                                  : (_) {
+                                      setState(() => _sellingMode = 'b2b');
+                                    },
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ] else if (isPackage) ...[
+                    const Text(
+                      'Jenis pembelian: Kemasan',
+                      style: TextStyle(fontSize: 13, color: muted),
+                    ),
+                    const SizedBox(height: 12),
+                  ] else ...[
+                    const Text(
+                      'Konfigurasi penjualan produk tidak valid.',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   Text(
-                    'Rp $price',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: brandRed),
+                    selectedPrice == null
+                        ? 'Harga tidak tersedia'
+                        : 'Rp ${_formatPrice(selectedPrice)} / ${_unitLabel()}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: brandRed,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -123,37 +347,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        final variantId = _getVariantId();
-                        if (variantId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('❌ Varian tidak tersedia')),
-                          );
-                          return;
-                        }
-                        try {
-                          await ApiService().addToCart(variantId, 1, sellingMode: 'package');
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('✅ ${p['name']} ditambahkan ke keranjang')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('❌ Gagal: $e')),
-                            );
-                          }
-                        }
-                      },
+                      onPressed: canAdd && !_addingToCart ? _addToCart : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: brandRed,
+                        disabledBackgroundColor: Colors.grey.shade400,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('TAMBAH KE KERANJANG', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: _addingToCart
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'TAMBAH KE KERANJANG',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ),
+                  if (!canAdd) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Produk belum dapat dibeli. Periksa harga dan ketersediaan stok.',
+                      style: TextStyle(fontSize: 12, color: muted),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -163,4 +387,3 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 }
-

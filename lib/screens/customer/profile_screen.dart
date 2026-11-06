@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/nav_service.dart';
 import '../login_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -64,10 +65,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showComingSoon(String feature) {
+  void _showNotAvailable(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Fitur "$feature" segera hadir!'),
+        content: Text('Halaman $feature sedang dalam pengembangan.'),
         backgroundColor: const Color(0xFF1E293B),
         behavior: SnackBarBehavior.floating,
       ),
@@ -96,7 +97,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            // HEADER
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
               child: Column(
@@ -108,8 +108,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-
-            // PROFILE CARD
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
@@ -117,14 +115,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.greenAccent.withOpacity(0.3), width: 1),
+                  border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.3), width: 1),
                 ),
                 child: Row(
                   children: [
                     Container(
                       width: 64, height: 64,
                       decoration: BoxDecoration(
-                        color: brandRed.withOpacity(0.2),
+                        color: brandRed.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                         border: Border.all(color: brandRed, width: 2),
                       ),
@@ -141,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 4),
                           Text(email, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 4),
-                          const Text('Member NUSA-DHIPA', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                          const Text('Member NUSA-DHIPA', style: TextStyle(color: Colors.white54, fontSize:10)),
                         ],
                       ),
                     ),
@@ -150,30 +148,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // MENU AKUN
             _menuSection('Akun', [
-              _menuItem(Icons.person_outline, 'Edit Profil', () => _showComingSoon('Edit Profil')),
-              _menuItem(Icons.location_on_outlined, 'Alamat Pengiriman', () => _showComingSoon('Alamat Pengiriman')),
-              _menuItem(Icons.credit_card, 'Metode Pembayaran', () => _showComingSoon('Metode Pembayaran')),
+              _menuItem(Icons.person_outline, 'Edit Profil', () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                ).then((_) => _loadUser());
+              }),
+              _menuItem(Icons.location_on_outlined, 'Alamat Pengiriman', () => _showNotAvailable('Alamat Pengiriman')),
+              _menuItem(Icons.credit_card, 'Metode Pembayaran', () => _showNotAvailable('Metode Pembayaran')),
             ]),
-
-            // MENU AKTIVITAS
             _menuSection('Aktivitas', [
               _menuItem(Icons.receipt_long_outlined, 'Pesanan Saya', () => NavService.switchTab(2)),
-              _menuItem(Icons.favorite_border, 'Wishlist', () => _showComingSoon('Wishlist')),
-              _menuItem(Icons.star_outline, 'Ulasan Saya', () => _showComingSoon('Ulasan Saya')),
+              _menuItem(Icons.favorite_border, 'Wishlist', () => _showNotAvailable('Wishlist')),
+              _menuItem(Icons.star_outline, 'Ulasan Saya', () => _showNotAvailable('Ulasan Saya')),
             ]),
-
-            // MENU PENGATURAN
             _menuSection('Pengaturan', [
-              _menuItem(Icons.notifications_outlined, 'Notifikasi', () => _showComingSoon('Notifikasi')),
-              _menuItem(Icons.language, 'Bahasa', () => _showComingSoon('Bahasa')),
-              _menuItem(Icons.help_outline, 'Bantuan', () => _showComingSoon('Bantuan')),
-              _menuItem(Icons.info_outline, 'Tentang NUSA-DHIPA', () => _showComingSoon('Tentang NUSA-DHIPA')),
+              _menuItem(Icons.notifications_outlined, 'Notifikasi', () => _showNotAvailable('Notifikasi')),
+              _menuItem(Icons.language, 'Bahasa', () => _showNotAvailable('Bahasa')),
+              _menuItem(Icons.help_outline, 'Bantuan', () => _showNotAvailable('Bantuan')),
+              _menuItem(Icons.info_outline, 'Tentang NUSA-DHIPA', () => _showNotAvailable('Tentang NUSA-DHIPA')),
             ]),
-
-            // TOMBOL LOGOUT
             Padding(
               padding: const EdgeInsets.all(20),
               child: OutlinedButton.icon(
@@ -187,7 +182,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text('© 2026 PT DIGI MEDIA KOMUNIKA', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.white54)),
@@ -212,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             ),
             child: Column(children: items),
           ),
@@ -230,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: brandRed.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: brandRed.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, color: brandRed, size: 18),
             ),
             const SizedBox(width: 12),
