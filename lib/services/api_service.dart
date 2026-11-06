@@ -241,8 +241,11 @@ class ApiService {
   }
 
 
+
+  // ============================================================
+  // CHECKOUT & ORDERS
+  // ============================================================
+  Future<Map<String, dynamic>> createOrder(Map<String, dynamic> body) async {
+    return await _post('/orders', body: body);
+  }
 }
-
-
-
-

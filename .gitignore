@@ -27,3 +27,9 @@ docs/
 *.bak*
 
 *.bak*
+
+# Android Kotlin errors
+android/.kotlin/errors/
+
+# Local backups
+*.bak*

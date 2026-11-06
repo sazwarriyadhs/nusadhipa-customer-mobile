@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../widgets/heading.dart';
 import '../../services/api_service.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -207,11 +208,16 @@ class _CartScreenState extends State<CartScreen> {
           SizedBox(
             width: double.infinity, height: 50,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Implementasi checkout ke API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fitur checkout akan segera hadir!')),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CheckoutScreen(cartItems: _cartItems),
+                  ),
                 );
+                if (result == true) {
+                  _loadCart(); // Refresh cart jika pesanan berhasil
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: brandRed,
