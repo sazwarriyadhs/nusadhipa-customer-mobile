@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic> _wallet = {'balance': 0, 'points': 0};
   bool _loading = true;
   String _selectedCategory = '';
+String _searchQuery = '';
 
   @override
   void initState() {
@@ -31,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
-      final products = await ApiService().getProducts(limit: 100);
+      final products = await ApiService().getProducts(business: 'berkah-petshop', limit: 100);
       final categories = await ApiService().getCategories();
       final wallet = await ApiService().getWallet();
 
@@ -49,8 +50,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Product> get _filteredProducts {
-    if (_selectedCategory.isEmpty) return _products;
-    return _products.where((p) => p.categoryName == _selectedCategory).toList();
+    var filtered = _products;
+    if (_selectedCategory.isNotEmpty) {
+      filtered = filtered.where((p) => p.categoryName == _selectedCategory).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((p) => 
+        p.name.toLowerCase().contains(_searchQuery.toLowerCase())
+      ).toList();
+    }
+    return filtered;
   }
 
   @override
@@ -338,8 +347,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 ),
                 style: const TextStyle(color: Colors.white),
-                onSubmitted: (val) {
-                  // Aksi pencarian
+                onChanged: (val) {
+                  setState(() => _searchQuery = val);
                 },
               ),
             ),

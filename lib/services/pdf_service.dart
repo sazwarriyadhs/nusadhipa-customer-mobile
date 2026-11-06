@@ -18,7 +18,34 @@ class PdfService {
     decimalDigits: 0,
   );
 
-  static String formatRupiah(num value) => _currency.format(value);
+  
+  // ===== FONT UNICODE (fix Helvetica) =====
+  static pw.Font? _fontRegular;
+  static pw.Font? _fontBold;
+  static pw.Font? _fontItalic;
+  static pw.Font? _fontBoldItalic;
+  static bool _fontsLoaded = false;
+
+  static Future<void> _loadFonts() async {
+    if (_fontsLoaded) return;
+    _fontRegular    = pw.Font.ttf(await rootBundle.load("assets/fonts/Roboto-Regular.ttf"));
+    _fontBold       = pw.Font.ttf(await rootBundle.load("assets/fonts/Roboto-Bold.ttf"));
+    _fontItalic     = pw.Font.ttf(await rootBundle.load("assets/fonts/Roboto-Italic.ttf"));
+    _fontBoldItalic = pw.Font.ttf(await rootBundle.load("assets/fonts/Roboto-BoldItalic.ttf"));
+    _fontsLoaded = true;
+  }
+
+  static Future<pw.ThemeData> theme() async {
+    await _loadFonts();
+    return pw.ThemeData.withFont(
+      base: _fontRegular,
+      bold: _fontBold,
+      italic: _fontItalic,
+      boldItalic: _fontBoldItalic,
+    );
+  }
+  // ===== END FONT =====
+static String formatRupiah(num value) => _currency.format(value);
 
   static String formatDate(DateTime? dt) {
     if (dt == null) return "-";

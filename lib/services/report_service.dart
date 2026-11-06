@@ -12,7 +12,9 @@ class ReportService {
     required Business? business,
     required FinancialReport report,
   }) async {
+    final theme = await PdfService.theme();
     final doc = pw.Document(
+      theme: theme,
       title: "Laporan Keuangan",
       author: business?.legalName ?? "NUSA-DHIPA",
       subject: "Laporan Keuangan Periode ${_formatDate(report.from)} - ${_formatDate(report.to)}",

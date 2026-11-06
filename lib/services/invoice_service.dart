@@ -11,7 +11,9 @@ class InvoiceService {
     required Business? business,
     required OrderDetail order,
   }) async {
+    final theme = await PdfService.theme();
     final doc = pw.Document(
+      theme: theme,
       title: "Invoice ${order.orderNumber}",
       author: business?.legalName ?? "NUSA-DHIPA",
       subject: "Invoice untuk order ${order.orderNumber}",

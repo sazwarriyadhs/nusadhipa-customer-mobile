@@ -23,3 +23,7 @@ Thumbs.db
 
 # Docs (optional)
 docs/
+
+*.bak*
+
+*.bak*

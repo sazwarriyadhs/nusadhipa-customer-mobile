@@ -221,7 +221,7 @@ class _CoverImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final coverSlug = getCoverImageForBusiness(business);
-    final coverUrl = 'https://nusadhipa.shop/kategori/$coverSlug.png';
+    final coverUrl = 'https://api.nusadhipa.shop/kategori/$coverSlug.png';
 
     return SizedBox(
       height: 160,

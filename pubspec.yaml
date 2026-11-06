@@ -39,6 +39,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/fonts/
     - assets/branding/header_marketplace.jpg
     - assets/branding/logo_nusadhipa.png
     - assets/branding/sauri_logo.png
