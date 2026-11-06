@@ -165,13 +165,25 @@ class _CartScreenState extends State<CartScreen> {
                     child: Row(
                       children: [
                         IconButton(
-                          onPressed: () {}, // Nanti sesuaikan dengan API update quantity
+                          onPressed: () async {
+                            if (qty > 1) {
+                              await ApiService().removeFromCart(cartId);
+                              await ApiService().addToCart(item['variant_id'], qty - 1, sellingMode: item['selling_mode'] ?? 'package');
+                              _loadCart();
+                            } else {
+                              _removeItem(cartId);
+                            }
+                          },
                           icon: const Icon(Icons.remove, size: 16, color: Colors.white),
                           constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                         ),
                         Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
                         IconButton(
-                          onPressed: () {}, // Nanti sesuaikan dengan API update quantity
+                          onPressed: () async {
+                            await ApiService().removeFromCart(cartId);
+                            await ApiService().addToCart(item['variant_id'], qty + 1, sellingMode: item['selling_mode'] ?? 'package');
+                            _loadCart();
+                          },
                           icon: const Icon(Icons.add, size: 16, color: Colors.white),
                           constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                         ),
