@@ -53,6 +53,8 @@ class _AddressScreenState extends State<AddressScreen> {
           final lon = double.parse(data[0]['lon']);
           final newLatLng = LatLng(lat, lon);
           
+          if (!mounted) return;
+          
           setState(() {
             _selectedLatLng = newLatLng;
           });

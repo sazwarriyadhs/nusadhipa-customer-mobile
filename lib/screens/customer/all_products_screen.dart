@@ -105,7 +105,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Rp ${NumberFormat('#,##0', 'id_ID').format(product.minPrice ?? 0)}',
+                                    'Rp ${NumberFormat('#,##0', 'id_ID').format(product.minPrice)}',
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: brandRed),
                                   ),
                                 ],

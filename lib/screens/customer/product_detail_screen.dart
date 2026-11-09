@@ -250,7 +250,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               height: 250,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 height: 250,
                 color: Colors.grey.shade200,
                 child: const Icon(

@@ -1,4 +1,4 @@
-# Flutter/Dart
+# ============ Flutter/Dart ============
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -8,32 +8,49 @@
 build/
 *.iml
 
-# IDE
+# ============ IDE ============
 .idea/
 .vscode/
 *.swp
+*.ipr
+*.iws
 
-# OS
+# ============ OS ============
 .DS_Store
 Thumbs.db
 
-# Env
+# ============ Environment / Secrets ============
 .env
 .env.local
+.env.*.local
 
-# Docs (optional)
-docs/
-
-*.bak*
-
-*.bak*
-
-# Android Kotlin errors
-android/.kotlin/errors/
-
-# Local backups
-*.bak*
+# ============ Build Artifacts ============
 *.apk
 *.aab
 *.ipa
 dist/
+
+# ============ Backups ============
+*.bak*
+*.backup
+
+# ============ Android ============
+android/.kotlin/errors/
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# ============ iOS ============
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# ============ Kotlin/Java build ============
+*.class
+*.log
