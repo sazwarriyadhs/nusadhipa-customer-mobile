@@ -165,6 +165,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Harga, stok, atau konfigurasi produk tidak tersedia'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -191,12 +192,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           content: Text(
             '$productName ($quantity $unit) ditambahkan ke keranjang',
           ),
+          backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       if (!mounted) return;
+      // TAMPILKAN ERROR ASLI DARI API
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menambahkan ke keranjang: $e')),
+        SnackBar(
+          content: Text('Gagal menambahkan: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
       );
     } finally {
       if (mounted) {
@@ -347,10 +354,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: canAdd && !_addingToCart ? _addToCart : null,
+                      onPressed: canAdd && !_addingToCart ? _addToCart : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Produk belum dapat dibeli (cek stok/harga)'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: brandRed,
-                        disabledBackgroundColor: Colors.grey.shade400,
+                        backgroundColor: canAdd ? brandRed : Colors.grey.shade400,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

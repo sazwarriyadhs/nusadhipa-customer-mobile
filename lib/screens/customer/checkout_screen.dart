@@ -22,50 +22,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   LatLng? _selectedLatLng;
   final MapController _mapController = MapController();
-
-  String _selectedCourier = 'J&T Express';
-  bool _isCourierLocked = false;
-  String _lockReason = '';
+  final String _selectedCourier = 'NUSA-DHIPA';
   bool _loading = false;
-
+  bool _loadingAddress = true;
   double _totalWeightKg = 0;
-
-  final List<String> _courierOptions = ['J&T Express', 'JNE', 'NUSA-DHIPA'];
 
   @override
   void initState() {
     super.initState();
     _calculateTotalWeight();
+    _loadAddress();
+  }
+
+  Future<void> _loadAddress() async {
+    try {
+      final list = await ApiService().getAddresses();
+      if (list.isNotEmpty && mounted) {
+        final addr = list.first;
+        setState(() {
+          _nameCtrl.text = addr['recipient_name'] ?? '';
+          _phoneCtrl.text = addr['phone'] ?? '';
+          _addressCtrl.text = addr['address_line'] ?? '';
+          _cityCtrl.text = addr['city'] ?? '';
+          _provinceCtrl.text = addr['province'] ?? '';
+          
+          // Tarik koordinat dari database
+          if (addr['latitude'] != null && addr['longitude'] != null) {
+            _selectedLatLng = LatLng(
+              double.parse(addr['latitude'].toString()),
+              double.parse(addr['longitude'].toString()),
+            );
+            // Geser peta ke titik tersebut
+            _mapController.move(_selectedLatLng!, 15);
+          }
+        });
+      }
+    } catch (e) {
+      // Abaikan jika belum ada alamat
+    } finally {
+      if (mounted) setState(() => _loadingAddress = false);
+    }
   }
 
   void _calculateTotalWeight() {
     _totalWeightKg = widget.cartItems.fold(0.0, (sum, item) {
       final qty = (item['quantity'] as num?)?.toInt() ?? 1;
       final weight = (item['weight_grams'] as num?)?.toDouble() ?? 500.0;
-      return sum + ((weight * qty) / 1000); // gram → kg
-    });
-  }
-
-  void _checkCourierRules() {
-    if (widget.cartItems.isEmpty) return;
-
-    final sellerCity = (widget.cartItems.first['business_city'] ?? '').toString().toLowerCase().trim();
-    final buyerCity = _cityCtrl.text.toLowerCase().trim();
-
-    final isOutsideCity = sellerCity.isNotEmpty && buyerCity.isNotEmpty && sellerCity != buyerCity;
-    final isOver100Kg = _totalWeightKg > 100;
-
-    setState(() {
-      if (isOutsideCity || isOver100Kg) {
-        _isCourierLocked = true;
-        _selectedCourier = 'NUSA-DHIPA';
-        _lockReason = isOutsideCity
-            ? 'Pesanan luar kota wajib NUSA-DHIPA'
-            : 'Berat >100kg wajib NUSA-DHIPA';
-      } else {
-        _isCourierLocked = false;
-        _lockReason = '';
-      }
+      return sum + ((weight * qty) / 1000);
     });
   }
 
@@ -78,7 +81,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedLatLng == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih lokasi pengiriman di peta')),
+        const SnackBar(content: Text('Pilih lokasi pengiriman di peta'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -88,9 +91,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final rawLat = widget.cartItems.first['business_lat'] as num?;
       final rawLng = widget.cartItems.first['business_lng'] as num?;
-      if (rawLat == null || rawLng == null) {
-        throw Exception('Lokasi toko tidak ditemukan. Hubungi admin.');
-      }
+      if (rawLat == null || rawLng == null) throw Exception('Lokasi toko tidak ditemukan.');
+      
       final storeLatLng = LatLng(rawLat.toDouble(), rawLng.toDouble());
       final distanceKm = _calculateDistanceKm(storeLatLng, _selectedLatLng!);
 
@@ -117,7 +119,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (response['success'] == true) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Pesanan berhasil dibuat!')),
+            const SnackBar(content: Text('Pesanan berhasil dibuat!'), backgroundColor: Colors.green),
           );
           Navigator.pop(context, true);
         }
@@ -127,7 +129,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -138,133 +140,131 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: const Text('Checkout'),
-        backgroundColor: brandRed,
+        backgroundColor: const Color(0xFF1E293B),
         foregroundColor: Colors.white,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text('Alamat Pengiriman', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _buildTextField(_nameCtrl, 'Nama Penerima', Icons.person),
-            _buildTextField(_phoneCtrl, 'No. Telepon', Icons.phone),
-            _buildTextField(_addressCtrl, 'Alamat Lengkap', Icons.location_on),
-            _buildTextField(_cityCtrl, 'Kota', Icons.location_city, onChanged: (_) => _checkCourierRules()),
-            _buildTextField(_provinceCtrl, 'Provinsi', Icons.map),
+      body: _loadingAddress 
+        ? const Center(child: CircularProgressIndicator(color: brandRed))
+        : Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text('Alamat Pengiriman', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 12),
+              _buildField(_nameCtrl, 'Nama Penerima', Icons.person),
+              _buildField(_phoneCtrl, 'No. Telepon', Icons.phone),
+              _buildField(_addressCtrl, 'Alamat Lengkap', Icons.location_on, maxLines: 2),
+              _buildField(_cityCtrl, 'Kota', Icons.location_city),
+              _buildField(_provinceCtrl, 'Provinsi', Icons.map),
 
-            const SizedBox(height: 24),
-            const Text('Pilih Lokasi di Peta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 250,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _selectedLatLng ?? const LatLng(-6.2, 106.816),
-                    initialZoom: 13,
-                    onTap: (tapPosition, point) {
-                      setState(() => _selectedLatLng = point);
-                    },
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.nusadhipa.customer',
+              const SizedBox(height: 24),
+              const Text('Pilih Lokasi di Peta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 200,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _selectedLatLng ?? const LatLng(-6.2, 106.816),
+                      initialZoom: 13,
+                      onTap: (tapPosition, point) => setState(() => _selectedLatLng = point),
                     ),
-                    if (_selectedLatLng != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _selectedLatLng!,
-                            width: 40,
-                            height: 40,
-                            child: const Icon(Icons.location_pin, color: brandRed, size: 40),
-                          ),
-                        ],
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.nusadhipa.customer',
                       ),
-                  ],
+                      if (_selectedLatLng != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: _selectedLatLng!,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(Icons.location_pin, color: brandRed, size: 40),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _selectedLatLng == null
-                  ? 'Ketuk peta untuk menentukan lokasi'
-                  : 'Lat: ${_selectedLatLng!.latitude.toStringAsFixed(5)}, Lng: ${_selectedLatLng!.longitude.toStringAsFixed(5)}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
+              const SizedBox(height: 4),
+              Text(
+                _selectedLatLng == null
+                    ? 'Ketuk peta untuk menentukan lokasi'
+                    : 'Lat: ${_selectedLatLng!.latitude.toStringAsFixed(5)}, Lng: ${_selectedLatLng!.longitude.toStringAsFixed(5)}',
+                style: const TextStyle(fontSize: 11, color: Colors.white54),
+              ),
 
-            const SizedBox(height: 24),
-            const Text('Pilih Kurir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (_isCourierLocked)
+              const SizedBox(height: 24),
+              const Text('Pilih Kurir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lock, size: 16, color: Colors.orange),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text(_lockReason, style: const TextStyle(fontSize: 11, color: Colors.orange))),
-                  ],
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: brandRed.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: brandRed),
+                ),
+                child: const RadioListTile<String>(
+                  title: Text('NUSA-DHIPA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  subtitle: Text('Instant/Same Day (Wajib)', style: TextStyle(color: Colors.white70)),
+                  value: 'NUSA-DHIPA',
+                  groupValue: 'NUSA-DHIPA',
+                  onChanged: null,
+                  activeColor: brandRed,
                 ),
               ),
-            const SizedBox(height: 8),
-            ..._courierOptions.map((courier) {
-              final disabled = _isCourierLocked && courier != 'NUSA-DHIPA';
-              return RadioListTile<String>(
-                title: Text(courier, style: TextStyle(color: disabled ? Colors.grey : null)),
-                value: courier,
-                groupValue: _selectedCourier,
-                onChanged: disabled ? null : (val) => setState(() => _selectedCourier = val!),
-              );
-            }),
 
-            const SizedBox(height: 24),
-            Text(
-              'Berat total: ${_totalWeightKg.toStringAsFixed(2)} kg',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _submitOrder,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: brandRed,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _loading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Buat Pesanan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              Text(
+                'Berat total: ${_totalWeightKg.toStringAsFixed(2)} kg',
+                style: const TextStyle(fontSize: 12, color: Colors.white54),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _submitOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: brandRed,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _loading
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Buat Pesanan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {ValueChanged<String>? onChanged}) {
+  Widget _buildField(TextEditingController ctrl, String label, IconData icon, {int maxLines = 1}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: ctrl,
+        maxLines: maxLines,
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          labelStyle: const TextStyle(color: Colors.white70),
+          prefixIcon: Icon(icon, color: brandRed),
+          filled: true,
+          fillColor: const Color(0xFF1E293B),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         ),
-        onChanged: onChanged,
-        validator: (val) => (val == null || val.trim().isEmpty) ? '$label wajib diisi' : null,
+        validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null,
       ),
     );
   }

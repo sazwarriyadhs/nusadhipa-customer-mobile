@@ -125,9 +125,26 @@ class ApiService {
     }
   }
 
-  // TAMBAHAN: Fungsi Update Profil untuk EditProfileScreen
+  // ============================================================
+  // PROFILE & ADDRESS
+  // ============================================================
   Future<Map<String, dynamic>> updateProfile({required String name}) async {
     return await _patch('/customer/profile', body: {'name': name});
+  }
+
+  Future<List<dynamic>> getAddresses() async {
+    try {
+      final json = await _get('/customer/addresses');
+      final data = json['data'];
+      if (data is List) return data;
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> saveAddress(Map<String, dynamic> body) async {
+    await _post('/customer/addresses', body: body);
   }
 
   // ============================================================
@@ -194,6 +211,10 @@ class ApiService {
     return data.whereType<Map<String, dynamic>>().map(Order.fromJson).toList();
   }
 
+  Future<Map<String, dynamic>> createOrder(Map<String, dynamic> body) async {
+    return await _post('/orders', body: body);
+  }
+
   // ============================================================
   // CART
   // ============================================================
@@ -233,12 +254,5 @@ class ApiService {
     } catch (e) {
       return {'balance': 0, 'points': 0};
     }
-  }
-
-  // ============================================================
-  // CHECKOUT
-  // ============================================================
-  Future<Map<String, dynamic>> createOrder(Map<String, dynamic> body) async {
-    return await _post('/orders', body: body);
   }
 }

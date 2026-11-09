@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/nav_service.dart';
 import '../login_screen.dart';
 import 'edit_profile_screen.dart';
+import 'address_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -155,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                 ).then((_) => _loadUser());
               }),
-              _menuItem(Icons.location_on_outlined, 'Alamat Pengiriman', () => _showNotAvailable('Alamat Pengiriman')),
+              _menuItem(Icons.location_on_outlined, 'Alamat Pengiriman', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddressScreen()))),
               _menuItem(Icons.credit_card, 'Metode Pembayaran', () => _showNotAvailable('Metode Pembayaran')),
             ]),
             _menuSection('Aktivitas', [

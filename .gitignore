@@ -33,3 +33,7 @@ android/.kotlin/errors/
 
 # Local backups
 *.bak*
+*.apk
+*.aab
+*.ipa
+dist/
